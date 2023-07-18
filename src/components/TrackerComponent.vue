@@ -1,31 +1,29 @@
 <script lang="ts">
-// defineProps<{
-//   msg: string
-// }>()
 
 import { defineComponent } from 'vue'
 import { createData, createNoisyData, createSinData } from '@/logic/generator'
 import * as THREE from 'three'
+import { disposeTreeGeometry, drawLines } from '@/logic/renderer';
+import { updateLines } from '@/logic/renderer';
 
-const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00bd7e })
-const planeMaterial = new THREE.MeshBasicMaterial({ color: 0x000 })
+let lineMaterial!: THREE.LineBasicMaterial;
+let planeMaterial!: THREE.MeshBasicMaterial;
 let linesData: Array<Array<number>> = []
 let linesDataNext: Array<Array<number>> = []
 let linesGroup = new THREE.Group()
-let listOfCurves: Array<any> = []
+
 let camera = new THREE.OrthographicCamera()
 let scene = new THREE.Scene()
 let renderer = new THREE.WebGLRenderer()
 
 let transitionMatrix = new Array<Array<number>>()
 
+let savedLines: [THREE.Line[], THREE.Mesh[]];
+
 export default defineComponent({
   data() {
     return {
       pointer: new THREE.Vector2(-100, -100),
-      linesCount: 150,
-      pointsCount: 200,
-      maxHeight: 30,
 
       inTransition: false,
       transitionIteration: 0,
@@ -33,13 +31,16 @@ export default defineComponent({
       stopAnimate: false
     }
   },
+  props: {
+    linesCount: Number,
+    pointsCount: Number,
+    lineColor: String,
+    backgroundColor: String
+  },
   methods: {
     getData() {
-      // return createNoisyData(
-      //   this.linesCount,
-      //   this.pointsCount
-      // )
-      return createNoisyData(this.linesCount, this.pointsCount)
+      if (!this.linesCount || !this.pointsCount) { return [[]]; }
+      return createNoisyData(this.linesCount, this.pointsCount);
     },
 
     onWindowResize() {
@@ -54,6 +55,8 @@ export default defineComponent({
     },
 
     animateBuzz() {
+      if (!this.linesCount || !this.pointsCount) { return; }
+
       const targetX = Math.round(this.pointer.x)
       const targetY = Math.round(this.pointer.y)
 
@@ -91,6 +94,8 @@ export default defineComponent({
     },
 
     animateWave() {
+      if (!this.linesCount || !this.pointsCount) { return }
+
       for (let i = 0; i < this.linesCount; i++) {
         linesData[i].push(...linesData[i].splice(0, 1))
       }
@@ -100,71 +105,20 @@ export default defineComponent({
       if (this.stopAnimate) {
         return
       }
+
       requestAnimationFrame(this.animate)
+
       if (this.transitionIteration > this.transitionLength) {
         this.inTransition = false
       }
+
       this.animateBuzz()
-      // for (let y = targetY - 7; y < targetY + 7; y++) {
-      //   for (let x = targetX - 7; x < targetX + 7; x++) {
-      //     if (x >= 0 && y >= 0 && linesData.length > y && linesData[y].length > x) {
-      //       const targetValue = linesData[y][x];
-
-      //       linesData[y][x] = targetValue < 40 ? targetValue + 40 / 20 : 40;
-      //     }
-      //   }
-      // }
-
       this.render()
     },
 
-    drawLines() {
-      listOfCurves.forEach((el: any) => {
-        el.geometry.dispose()
-      })
-      listOfCurves.length = 0
-      linesGroup.clear()
-      linesData.forEach((lineData, lineIndex) => {
-        {
-          const heartShape = new THREE.Shape()
-          heartShape.moveTo(0, Math.round(lineIndex + lineData[0]))
-
-          lineData.forEach((el, index) => {
-            if (index == 0) {
-              return
-            }
-            heartShape.lineTo(index, lineIndex + el)
-          })
-          heartShape.lineTo(lineData.length - 1, 0)
-          heartShape.lineTo(0, -1)
-          heartShape.lineTo(0, Math.round(lineIndex + lineData[0]))
-
-          const geometry = new THREE.ShapeGeometry(heartShape)
-          const mesh = new THREE.Mesh(geometry, planeMaterial)
-          mesh.position.setZ(this.linesCount - lineIndex)
-          linesGroup.add(mesh)
-          listOfCurves.push(mesh)
-        }
-        {
-          const points: THREE.Vector3[] = []
-          lineData.forEach((el, index) => {
-            points.push(new THREE.Vector3(index, lineIndex + el, 0))
-          })
-
-          const geometry = new THREE.BufferGeometry().setFromPoints(points)
-
-          const line = new THREE.Line(geometry, lineMaterial)
-          line.position.setZ(this.linesCount - lineIndex)
-
-          linesGroup.add(line)
-          listOfCurves.push(line)
-        }
-      })
-    },
-
     render() {
-      this.drawLines()
-
+      // drawLines(linesGroup, linesData, lineMaterial, planeMaterial);
+      updateLines(savedLines[0], savedLines[1], linesData);
       renderer.render(scene, camera)
     },
 
@@ -203,13 +157,18 @@ export default defineComponent({
     transitionMatrix = JSON.parse(JSON.stringify(linesData))
     camera = new THREE.OrthographicCamera(0, linesData[0].length - 1, linesData.length - 1, 0)
     camera.position.z = 1000
+
     const canvasEl = this.$refs.canvas as HTMLElement
     renderer = new THREE.WebGLRenderer({ antialias: true, canvas: canvasEl })
-    scene.background = new THREE.Color(0, 0, 0)
+
     renderer.setPixelRatio(window.devicePixelRatio)
     renderer.useLegacyLights = false
 
     scene.add(linesGroup)
+    scene.background = new THREE.Color(this.backgroundColor)
+
+    lineMaterial = new THREE.LineBasicMaterial({ color: this.lineColor });
+    planeMaterial = new THREE.MeshBasicMaterial({ color: this.backgroundColor });
 
     window.addEventListener('resize', this.onWindowResize)
 
@@ -221,11 +180,16 @@ export default defineComponent({
     canvasEl.addEventListener('touchend', this.removeSelection)
     canvasEl.addEventListener('click', this.removeSelection)
 
+    savedLines = drawLines(linesGroup, linesData, lineMaterial, planeMaterial);
+
     this.onWindowResize()
     this.animate()
   },
   unmounted() {
-    this.stopAnimate = true
+    this.stopAnimate = true;
+    lineMaterial.dispose();
+    planeMaterial.dispose();
+    disposeTreeGeometry(linesGroup);
   }
 })
 </script>

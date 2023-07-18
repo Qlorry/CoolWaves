@@ -1,17 +1,16 @@
 <script lang="ts">
-// defineProps<{
-//   msg: string
-// }>()
 
 import { defineComponent } from 'vue'
 import { createData } from '@/logic/generator'
-import * as THREE from 'three'
 
-const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00bd7e })
-const planeMaterial = new THREE.MeshBasicMaterial({ color: 0x000 })
+import * as THREE from 'three'
+import { disposeTreeGeometry, drawLines } from '@/logic/renderer'
+
+let lineMaterial!: THREE.LineBasicMaterial;
+let planeMaterial!: THREE.MeshBasicMaterial;
 let linesData: Array<Array<number>> = []
 let linesGroup = new THREE.Group()
-let listOfCurves: Array<any> = []
+
 let camera = new THREE.OrthographicCamera()
 let scene = new THREE.Scene()
 let renderer = new THREE.WebGLRenderer()
@@ -21,8 +20,6 @@ let transitionMatrix = new Array<Array<number>>()
 export default defineComponent({
   data() {
     return {
-      linesCount: 200,
-      pointsCount: 200,
       maxHeight: 30,
 
       inTransition: false,
@@ -31,8 +28,16 @@ export default defineComponent({
       stopAnimate: false
     }
   },
+  props: {
+    linesCount: Number,
+    pointsCount: Number,
+    lineColor: String,
+    backgroundColor: String
+  },
   methods: {
     getData() {
+      if (!this.linesCount || !this.pointsCount) { return [[]]; }
+
       return createData(
         this.linesCount,
         this.pointsCount,
@@ -55,16 +60,18 @@ export default defineComponent({
       renderer.setSize(parent.clientWidth, parent.clientHeight - 6)
     },
 
-    //
-
     animate() {
       if (this.stopAnimate) {
         return
       }
+
       requestAnimationFrame(this.animate)
+
       if (this.transitionIteration > this.transitionLength) {
         this.inTransition = false
       }
+
+      if (!this.linesCount || !this.pointsCount) { return; }
 
       if (this.inTransition) {
         this.transitionIteration++
@@ -90,49 +97,7 @@ export default defineComponent({
     },
 
     render() {
-      listOfCurves.forEach((el: any) => {
-        el.geometry.dispose()
-      })
-      listOfCurves.length = 0
-      linesGroup.clear()
-
-      linesData.forEach((lineData, lineIndex) => {
-        {
-          const heartShape = new THREE.Shape()
-
-          heartShape.moveTo(0, lineIndex + lineData[0])
-
-          lineData.forEach((el, index) => {
-            if (index == 0) {
-              return
-            }
-            heartShape.lineTo(index, lineIndex + el)
-          })
-          heartShape.lineTo(lineData.length - 1, 0)
-          heartShape.lineTo(0, -1)
-          heartShape.lineTo(0, lineIndex + lineData[0])
-          debugger
-          const geometry = new THREE.ShapeGeometry(heartShape)
-          const mesh = new THREE.Mesh(geometry, planeMaterial)
-          mesh.position.setZ(this.linesCount - lineIndex)
-          linesGroup.add(mesh)
-          listOfCurves.push(mesh)
-        }
-        {
-          const points: THREE.Vector3[] = []
-          lineData.forEach((el, index) => {
-            points.push(new THREE.Vector3(index, lineIndex + el, 0))
-          })
-
-          const geometry = new THREE.BufferGeometry().setFromPoints(points)
-
-          const line = new THREE.Line(geometry, lineMaterial)
-          line.position.setZ(this.linesCount - lineIndex)
-
-          linesGroup.add(line)
-          listOfCurves.push(line)
-        }
-      })
+      drawLines(linesGroup, linesData, lineMaterial, planeMaterial);
 
       renderer.render(scene, camera)
     }
@@ -147,21 +112,24 @@ export default defineComponent({
       antialias: true,
       canvas: this.$refs.canvas as HTMLElement
     })
-    scene.background = new THREE.Color(255, 255, 255)
     renderer.setPixelRatio(window.devicePixelRatio)
     renderer.useLegacyLights = false
 
-    // document.body.appendChild(this.renderer.domElement);
-
     scene.add(linesGroup)
-    scene.background = new THREE.Color('#000')
+    scene.background = new THREE.Color(this.backgroundColor)
+
+    lineMaterial = new THREE.LineBasicMaterial({ color: this.lineColor });
+    planeMaterial = new THREE.MeshBasicMaterial({ color: this.backgroundColor });
 
     window.addEventListener('resize', this.onWindowResize)
     this.onWindowResize()
     this.animate()
   },
   unmounted() {
-    this.stopAnimate = true
+    this.stopAnimate = true;
+    lineMaterial.dispose();
+    planeMaterial.dispose();
+    disposeTreeGeometry(linesGroup);
   }
 })
 </script>
