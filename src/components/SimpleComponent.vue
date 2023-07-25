@@ -1,13 +1,12 @@
 <script lang="ts">
-
 import { defineComponent } from 'vue'
 import { createData } from '@/logic/generator'
 
 import * as THREE from 'three'
 import { disposeTreeGeometry, drawLines } from '@/logic/renderer'
 
-let lineMaterial!: THREE.LineBasicMaterial;
-let planeMaterial!: THREE.MeshBasicMaterial;
+let lineMaterial!: THREE.LineBasicMaterial
+let planeMaterial!: THREE.MeshBasicMaterial
 let linesData: Array<Array<number>> = []
 let linesGroup = new THREE.Group()
 
@@ -36,7 +35,9 @@ export default defineComponent({
   },
   methods: {
     getData() {
-      if (!this.linesCount || !this.pointsCount) { return [[]]; }
+      if (!this.linesCount || !this.pointsCount) {
+        return [[]]
+      }
 
       return createData(
         this.linesCount,
@@ -71,7 +72,9 @@ export default defineComponent({
         this.inTransition = false
       }
 
-      if (!this.linesCount || !this.pointsCount) { return; }
+      if (!this.linesCount || !this.pointsCount) {
+        return
+      }
 
       if (this.inTransition) {
         this.transitionIteration++
@@ -97,7 +100,7 @@ export default defineComponent({
     },
 
     render() {
-      drawLines(linesGroup, linesData, lineMaterial, planeMaterial);
+      drawLines(linesGroup, linesData, lineMaterial, planeMaterial)
 
       renderer.render(scene, camera)
     }
@@ -118,18 +121,18 @@ export default defineComponent({
     scene.add(linesGroup)
     scene.background = new THREE.Color(this.backgroundColor)
 
-    lineMaterial = new THREE.LineBasicMaterial({ color: this.lineColor });
-    planeMaterial = new THREE.MeshBasicMaterial({ color: this.backgroundColor });
+    lineMaterial = new THREE.LineBasicMaterial({ color: this.lineColor })
+    planeMaterial = new THREE.MeshBasicMaterial({ color: this.backgroundColor })
 
     window.addEventListener('resize', this.onWindowResize)
     this.onWindowResize()
     this.animate()
   },
   unmounted() {
-    this.stopAnimate = true;
-    lineMaterial.dispose();
-    planeMaterial.dispose();
-    disposeTreeGeometry(linesGroup);
+    this.stopAnimate = true
+    lineMaterial.dispose()
+    planeMaterial.dispose()
+    disposeTreeGeometry(linesGroup)
   }
 })
 </script>

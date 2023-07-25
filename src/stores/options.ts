@@ -7,7 +7,6 @@ export interface Options {
   numOfPoints: number
 }
 
-
 export const useOptionsStore = defineStore('options', {
   state: () => {
     return {
@@ -15,22 +14,22 @@ export const useOptionsStore = defineStore('options', {
       backgroundColor: '#000',
       numOfLines: 150,
       numOfPoints: 200
-    } as Options;
+    } as Options
   },
   // could also be defined as
   // state: () => ({ count: 0 })
   actions: {
     setLineColor(newColor: string) {
-      this.lineColor = newColor;
+      this.lineColor = newColor
     },
     setBackgroundColor(newColor: string) {
-      this.backgroundColor = newColor;
+      this.backgroundColor = newColor
     },
     setLines(count: number) {
-      this.numOfLines = count;
+      this.numOfLines = count
     },
     setPoints(count: number) {
-      this.numOfPoints = count;
+      this.numOfPoints = count
     }
-  },
+  }
 })

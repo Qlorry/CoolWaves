@@ -1,13 +1,12 @@
 <script lang="ts">
-
 import { defineComponent } from 'vue'
 import { createData, createNoisyData, createSinData } from '@/logic/generator'
 import * as THREE from 'three'
-import { disposeTreeGeometry, drawLines } from '@/logic/renderer';
-import { updateLines } from '@/logic/renderer';
+import { disposeTreeGeometry, drawLines } from '@/logic/renderer'
+import { updateLines } from '@/logic/renderer'
 
-let lineMaterial!: THREE.LineBasicMaterial;
-let planeMaterial!: THREE.MeshBasicMaterial;
+let lineMaterial!: THREE.LineBasicMaterial
+let planeMaterial!: THREE.MeshBasicMaterial
 let linesData: Array<Array<number>> = []
 let linesDataNext: Array<Array<number>> = []
 let linesGroup = new THREE.Group()
@@ -18,7 +17,7 @@ let renderer = new THREE.WebGLRenderer()
 
 let transitionMatrix = new Array<Array<number>>()
 
-let savedLines: [THREE.Line[], THREE.Mesh[]];
+let savedLines: [THREE.Line[], THREE.Mesh[]]
 
 export default defineComponent({
   data() {
@@ -39,8 +38,10 @@ export default defineComponent({
   },
   methods: {
     getData() {
-      if (!this.linesCount || !this.pointsCount) { return [[]]; }
-      return createNoisyData(this.linesCount, this.pointsCount);
+      if (!this.linesCount || !this.pointsCount) {
+        return [[]]
+      }
+      return createNoisyData(this.linesCount, this.pointsCount)
     },
 
     onWindowResize() {
@@ -55,7 +56,9 @@ export default defineComponent({
     },
 
     animateBuzz() {
-      if (!this.linesCount || !this.pointsCount) { return; }
+      if (!this.linesCount || !this.pointsCount) {
+        return
+      }
 
       const targetX = Math.round(this.pointer.x)
       const targetY = Math.round(this.pointer.y)
@@ -64,19 +67,16 @@ export default defineComponent({
         this.transitionIteration++
         for (let i = 0; i < this.linesCount; i++) {
           for (let j = 0; j < this.pointsCount; j++) {
-            if (targetY - 7 < i && targetY + 7 > i && targetX - 7 < j && targetX + 7 > j) {
-              const radius = Math.sqrt(Math.pow(targetX - j, 2) + Math.pow(targetY - i, 2))
-              if (radius > 7) {
-                linesData[i][j] += transitionMatrix[i][j]
-                continue
-              }
-              const targetValue = linesData[i][j]
-              linesData[i][j] = targetValue < 40 ? targetValue + 40 / 20 : 40
-              transitionMatrix[i][j] =
-                (linesDataNext[i][j] - linesData[i][j]) / this.transitionLength
-            } else {
+            const radius = Math.sqrt(Math.pow(targetX - j, 2) + Math.pow(targetY - i, 2))
+            if (radius > 7) {
               linesData[i][j] += transitionMatrix[i][j]
+              continue
             }
+            const targetValue = linesData[i][j]
+            linesData[i][j] = targetValue < 40 ? targetValue + 40 / 20 : 40
+            transitionMatrix[i][j] =
+              (linesDataNext[i][j] - linesData[i][j]) / this.transitionLength
+
           }
         }
       } else {
@@ -94,7 +94,9 @@ export default defineComponent({
     },
 
     animateWave() {
-      if (!this.linesCount || !this.pointsCount) { return }
+      if (!this.linesCount || !this.pointsCount) {
+        return
+      }
 
       for (let i = 0; i < this.linesCount; i++) {
         linesData[i].push(...linesData[i].splice(0, 1))
@@ -111,15 +113,29 @@ export default defineComponent({
       if (this.transitionIteration > this.transitionLength) {
         this.inTransition = false
       }
+      const start = performance.now();
 
       this.animateBuzz()
+
+      const middle = performance.now();
       this.render()
+      const end = performance.now();
+      console.log(`animateBuzz execution time: ${middle - start} ms`);
+      console.log(`render execution time: ${end - middle} ms`);
+
     },
 
     render() {
+      const start = performance.now();
+
       // drawLines(linesGroup, linesData, lineMaterial, planeMaterial);
-      updateLines(savedLines[0], savedLines[1], linesData);
+      updateLines(savedLines[0], savedLines[1], linesData)
+      const middle = performance.now();
       renderer.render(scene, camera)
+      const end = performance.now();
+      console.log(`updateLines execution time: ${middle - start} ms`);
+      console.log(`renderer.render execution time: ${end - middle} ms`);
+
     },
 
     updateMousePos(event: TouchEvent | MouseEvent) {
@@ -167,8 +183,8 @@ export default defineComponent({
     scene.add(linesGroup)
     scene.background = new THREE.Color(this.backgroundColor)
 
-    lineMaterial = new THREE.LineBasicMaterial({ color: this.lineColor });
-    planeMaterial = new THREE.MeshBasicMaterial({ color: this.backgroundColor });
+    lineMaterial = new THREE.LineBasicMaterial({ color: this.lineColor })
+    planeMaterial = new THREE.MeshBasicMaterial({ color: this.backgroundColor })
 
     window.addEventListener('resize', this.onWindowResize)
 
@@ -180,23 +196,21 @@ export default defineComponent({
     canvasEl.addEventListener('touchend', this.removeSelection)
     canvasEl.addEventListener('click', this.removeSelection)
 
-    savedLines = drawLines(linesGroup, linesData, lineMaterial, planeMaterial);
+    savedLines = drawLines(linesGroup, linesData, lineMaterial, planeMaterial)
 
     this.onWindowResize()
     this.animate()
   },
   unmounted() {
-    this.stopAnimate = true;
-    lineMaterial.dispose();
-    planeMaterial.dispose();
-    disposeTreeGeometry(linesGroup);
+    this.stopAnimate = true
+    lineMaterial.dispose()
+    planeMaterial.dispose()
+    disposeTreeGeometry(linesGroup)
   }
 })
 </script>
 
 <template>
-  <!-- <h4>{{ pointer.x }}</h4>
-  <h4>{{ pointer.y }}</h4> -->
   <div class="flex-grow-1 p-0 m-0">
     <canvas ref="canvas"></canvas>
   </div>
