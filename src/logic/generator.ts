@@ -71,6 +71,7 @@ export function createNoisyData(linesCount: number, pointsInLine: number) {
     linesData.push(Array<number>(pointsInLine))
     for (let points = 0; points < pointsInLine; points++) {
       linesData[lines][points] = Math.sin(Math.random() * 3.5)
+      linesData[lines][points] = linesData[lines][points] < 0 ? 0 : linesData[lines][points];
     }
   }
 

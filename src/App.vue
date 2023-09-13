@@ -27,6 +27,9 @@ import { RouterLink, RouterView } from 'vue-router'
               <RouterLink class="nav-link" to="/tracker">Tracker</RouterLink>
             </li>
             <li class="nav-item">
+              <RouterLink class="nav-link" to="/for-katia">Для Каті</RouterLink>
+            </li>
+            <li class="nav-item">
               <RouterLink class="nav-link" to="/test">Test</RouterLink>
             </li>
           </ul>

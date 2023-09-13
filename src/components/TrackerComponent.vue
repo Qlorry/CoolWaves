@@ -1,12 +1,10 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import { createData, createNoisyData, createSinData } from '@/logic/generator'
-import * as THREE from 'three'
-import { disposeTreeGeometry, drawLines } from '@/logic/renderer'
-import { updateLines } from '@/logic/renderer'
 
-let lineMaterial!: THREE.LineBasicMaterial
-let planeMaterial!: THREE.MeshBasicMaterial
+import * as THREE from 'three'
+import { disposeTreeGeometry, createLines, updateLines, type Lines } from '@/logic/shader-renderer'
+
 let linesData: Array<Array<number>> = []
 let linesDataNext: Array<Array<number>> = []
 let linesGroup = new THREE.Group()
@@ -17,7 +15,7 @@ let renderer = new THREE.WebGLRenderer()
 
 let transitionMatrix = new Array<Array<number>>()
 
-let savedLines: [THREE.Line[], THREE.Mesh[]]
+let savedLines: Lines;
 
 export default defineComponent({
   data() {
@@ -113,23 +111,22 @@ export default defineComponent({
       if (this.transitionIteration > this.transitionLength) {
         this.inTransition = false
       }
-      const start = performance.now();
+      // const start = performance.now();
 
       this.animateBuzz()
 
-      const middle = performance.now();
+      // const middle = performance.now();
       this.render()
-      const end = performance.now();
-      console.log(`animateBuzz execution time: ${middle - start} ms`);
-      console.log(`render execution time: ${end - middle} ms`);
+      // const end = performance.now();
+      // console.log(`animateBuzz execution time: ${middle - start} ms`);
+      // console.log(`render execution time: ${end - middle} ms`);
 
     },
 
     render() {
       const start = performance.now();
 
-      // drawLines(linesGroup, linesData, lineMaterial, planeMaterial);
-      updateLines(savedLines[0], savedLines[1], linesData)
+      updateLines(savedLines, linesData)
       const middle = performance.now();
       renderer.render(scene, camera)
       const end = performance.now();
@@ -172,7 +169,7 @@ export default defineComponent({
     linesData = this.getData()
     transitionMatrix = JSON.parse(JSON.stringify(linesData))
     camera = new THREE.OrthographicCamera(0, linesData[0].length - 1, linesData.length - 1, 0)
-    camera.position.z = 1000
+    camera.position.z = 2000
 
     const canvasEl = this.$refs.canvas as HTMLElement
     renderer = new THREE.WebGLRenderer({ antialias: true, canvas: canvasEl })
@@ -181,10 +178,7 @@ export default defineComponent({
     renderer.useLegacyLights = false
 
     scene.add(linesGroup)
-    scene.background = new THREE.Color(this.backgroundColor)
-
-    lineMaterial = new THREE.LineBasicMaterial({ color: this.lineColor })
-    planeMaterial = new THREE.MeshBasicMaterial({ color: this.backgroundColor })
+    scene.background = new THREE.Color("#ff0000")
 
     window.addEventListener('resize', this.onWindowResize)
 
@@ -196,15 +190,14 @@ export default defineComponent({
     canvasEl.addEventListener('touchend', this.removeSelection)
     canvasEl.addEventListener('click', this.removeSelection)
 
-    savedLines = drawLines(linesGroup, linesData, lineMaterial, planeMaterial)
+    savedLines = createLines(linesGroup, linesData, this.lineColor ?? "", this.backgroundColor ?? "")
 
     this.onWindowResize()
     this.animate()
   },
   unmounted() {
     this.stopAnimate = true
-    lineMaterial.dispose()
-    planeMaterial.dispose()
+
     disposeTreeGeometry(linesGroup)
   }
 })

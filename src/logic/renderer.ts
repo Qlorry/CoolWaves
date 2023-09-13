@@ -11,16 +11,25 @@ export function drawLines(
   let lines: THREE.Line[] = []
   let meshes: THREE.Mesh[] = []
   linesData.forEach((lineData, lineIndex) => {
+    //Prepare points
     const points: THREE.Vector2[] = []
     lineData.forEach((el, index) => {
       points.push(new THREE.Vector2(index, lineIndex + el))
     })
 
+    // Create outlines
     const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
 
+    const line = new THREE.Line(lineGeometry, lineMaterial)
+    line.position.setZ(linesData.length - lineIndex)
+
+    linesGroup.add(line)
+    lines.push(line)
+    
     points.push(new THREE.Vector2(lineData.length, -1));
     points.push(new THREE.Vector2(0, -1));
 
+    debugger
     const planeShape = new THREE.Shape(points);
     const planeGeometry = new THREE.ShapeGeometry(planeShape);
 
@@ -29,11 +38,6 @@ export function drawLines(
     linesGroup.add(mesh)
     meshes.push(mesh)
 
-    const line = new THREE.Line(lineGeometry, lineMaterial)
-    line.position.setZ(linesData.length - lineIndex)
-
-    linesGroup.add(line)
-    lines.push(line)
 
   })
   return [lines, meshes]

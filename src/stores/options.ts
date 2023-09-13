@@ -13,7 +13,7 @@ export const useOptionsStore = defineStore('options', {
       lineColor: '#00bd7e',
       backgroundColor: '#000',
       numOfLines: 150,
-      numOfPoints: 200
+      numOfPoints: 150
     } as Options
   },
   // could also be defined as
