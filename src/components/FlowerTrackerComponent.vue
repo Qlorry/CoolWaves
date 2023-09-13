@@ -9,6 +9,7 @@ import Stats from 'three/addons/libs/stats.module.js';
 import { disposeTreeGeometry } from '@/logic/shader-renderer'
 // import { PhysicsWorld, RigidBox, createAmmoLib } from '@/logic/physics-world'
 import { MyAmmoPhysics, RigidBox, RigidSphere } from '@/logic/MyAmmoPhysics'
+import type { AmmoPhysicsObject } from '@/logic/MyAmmoPhysics'
 
 let position = new THREE.Vector3();
 let boxes, spheres, flowers;
@@ -19,7 +20,7 @@ let scene = new THREE.Scene()
 let renderer = new THREE.WebGLRenderer()
 
 let stats = new Stats();
-let physics;
+let physics!: AmmoPhysicsObject;
 let monkeys: THREE.InstancedMesh;
 const dummy = new THREE.Object3D();
 
@@ -46,11 +47,19 @@ export default defineComponent({
   },
   methods: {
     onWindowResize() {
-      let parent = (this.$refs.canvasRef as HTMLElement).parentElement
+      const canvas = (this.$refs.canvasRef as HTMLCanvasElement);
+      let parent = canvas.parentElement;
       if (!parent) {
         return
       }
 
+
+      // adjust displayBuffer size to match
+      if (canvas.width === parent.clientWidth || canvas.height === parent.clientHeight) {
+        return;
+      }
+      
+      
       camera.aspect = parent.clientWidth / parent.clientHeight;
       renderer.setSize(parent.clientWidth, parent.clientHeight)
 
@@ -61,6 +70,7 @@ export default defineComponent({
       if (this.stopAnimate) {
         return
       }
+      this.onWindowResize();
 
       requestAnimationFrame(this.animate)
 
@@ -139,6 +149,7 @@ export default defineComponent({
   },
   async mounted() {
     physics = await MyAmmoPhysics();
+    scene = new THREE.Scene();
 
     const canvasEl = this.$refs.canvasRef as HTMLElement
     const parent = canvasEl.parentElement;
@@ -277,8 +288,7 @@ export default defineComponent({
 
 
     const loader = new THREE.BufferGeometryLoader();
-    loader.load('src/assets/models/suzanne_buffergeometry.json', (monkGeometry) => {
-      debugger
+    loader.load('/models/suzanne_buffergeometry.json', (monkGeometry) => {
       monkGeometry.computeVertexNormals();
       monkGeometry.scale(0.07, 0.07, 0.07);
 
@@ -286,7 +296,7 @@ export default defineComponent({
       // check overdraw
       // let material = new THREE.MeshBasicMaterial({ color: 0xff0000, opacity: 0.1, transparent: true });
 
-      monkeys = new THREE.InstancedMesh(monkGeometry, monkGaterial, 1400);
+      monkeys = new THREE.InstancedMesh(monkGeometry, monkGaterial, 500);
       monkeys.instanceMatrix.setUsage(THREE.DynamicDrawUsage); // will be updated every frame
       scene.add(monkeys);
 
@@ -331,6 +341,7 @@ export default defineComponent({
 
 
     window.addEventListener('resize', this.onWindowResize)
+    parent?.addEventListener('resize', this.onWindowResize)
 
     // canvasEl.addEventListener('mousemove', this.updateMousePos)
     // canvasEl.addEventListener('touchmove', this.updateMousePos)
@@ -339,7 +350,7 @@ export default defineComponent({
 
     // canvasEl.addEventListener('touchend', this.removeSelection)
     // canvasEl.addEventListener('click', this.removeSelection)
-    document.body.appendChild(stats.dom);
+    // document.body.appendChild(stats.dom);
 
     this.onWindowResize()
     this.animate(0)
@@ -362,14 +373,13 @@ export default defineComponent({
   },
   unmounted() {
     this.stopAnimate = true
-
     disposeTreeGeometry(scene)
   }
 })
 </script>
 
 <template>
-  <div class="flex-grow-1 p-0 m-0 mw-100 mh-100 overflow-auto">
+  <div class="flex-grow-1 p-0 m-0 mw-100 mh-100 overflow-hidden">
     <canvas ref="canvasRef"></canvas>
   </div>
 </template>

@@ -101,7 +101,6 @@ export default defineComponent({
 
     render() {
       drawLines(linesGroup, linesData, lineMaterial, planeMaterial)
-debugger
       renderer.render(scene, camera)
     }
   },

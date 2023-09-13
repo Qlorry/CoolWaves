@@ -7,11 +7,10 @@ export class RigidBody {
 		motionState,
 		shape,
 		inertia,
-		info) 
-		{
+		info) {
 		this.body_ = body;
-		this.transform_= transform;
-		this.motionState_ =motionState;
+		this.transform_ = transform;
+		this.motionState_ = motionState;
 		this.shape_ = shape;
 		this.inertia_ = inertia;
 		this.info_ = info;
@@ -90,8 +89,13 @@ async function MyAmmoPhysics() {
 
 	}
 
-	AmmoLib = await Ammo(); // eslint-disable-line no-undef
+	if (typeof Ammo === 'function') {
 
+		AmmoLib = await Ammo(); // eslint-disable-line no-undef
+	}
+	else {
+		AmmoLib = Ammo;
+	}
 	const frameRate = 60;
 
 	const collisionConfiguration = new AmmoLib.btDefaultCollisionConfiguration();

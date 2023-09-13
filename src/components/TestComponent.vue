@@ -111,7 +111,6 @@ export default defineComponent({
         this.inTransition = true
       }
       if (this.changeShape) {
-        debugger
 
         this.animateBuzz();
         updateLines(savedLines, linesData)
@@ -163,7 +162,6 @@ export default defineComponent({
     }
   },
   mounted() {
-    debugger
     linesDataNext = this.getData()
 
     linesData = this.getData()

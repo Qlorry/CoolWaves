@@ -4,7 +4,7 @@ export interface Lines {
   outline: THREE.Line[];
   plane: THREE.Mesh[];
   planeDisplacement: Float32Array[];
-  materials: [THREE.LineBasicMaterial, THREE.ShaderMaterial];
+  materials: [THREE.LineBasicMaterial, THREE.Material];
 }
 
 const vshader = `
@@ -51,8 +51,8 @@ export function createLines(
   //   vertexShader: vshader,
   //   fragmentShader: fshader
   // });
-  const planeMaterial = new THREE.MeshBasicMaterial({color: 0xffffff})
-  debugger
+  const planeMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff })
+
   linesData.forEach((lineData, lineIndex) => {
     //Prepare points
     const points: THREE.Vector2[] = []
@@ -93,7 +93,6 @@ export function updateLines(
   lineObjects: Lines,
   linesData: Array<Array<number>>
 ) {
-  debugger
   linesData.forEach((lineData, lineIndex) => {
     //Prepare points
     const points: THREE.Vector2[] = []
@@ -131,5 +130,8 @@ export function disposeTreeGeometry(node: any) {
   })
   if (node.geometry && node.geometry.dispose) {
     node.geometry.dispose()
+  }
+  if (node.material && node.material.dispose) {
+    node.material.dispose()
   }
 }

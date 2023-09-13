@@ -29,7 +29,6 @@ export function drawLines(
     points.push(new THREE.Vector2(lineData.length, -1));
     points.push(new THREE.Vector2(0, -1));
 
-    debugger
     const planeShape = new THREE.Shape(points);
     const planeGeometry = new THREE.ShapeGeometry(planeShape);
 
@@ -37,8 +36,6 @@ export function drawLines(
     mesh.position.setZ(linesData.length - lineIndex)
     linesGroup.add(mesh)
     meshes.push(mesh)
-
-
   })
   return [lines, meshes]
 }
