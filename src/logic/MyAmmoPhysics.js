@@ -143,6 +143,7 @@ async function MyAmmoPhysics() {
 
 	const meshes = [];
 	const meshMap = new WeakMap();
+	const meshWeightMap = new WeakMap();
 
 
 	function addMeshAndShape(mesh, shape, mass = 0) {
@@ -195,12 +196,13 @@ async function MyAmmoPhysics() {
 		// body.setFriction( 4 );
 		world.addRigidBody(body);
 
-		if (mass > 0) {
+		// if (mass > 0) {
+		meshWeightMap.set(mesh, mass);
+		// }
+		meshes.push(mesh);
+		meshMap.set(mesh, body);
 
-			meshes.push(mesh);
-			meshMap.set(mesh, body);
-
-		}
+		// }
 
 
 	}
@@ -292,6 +294,10 @@ async function MyAmmoPhysics() {
 			for (let i = 0, l = meshes.length; i < l; i++) {
 
 				const mesh = meshes[i];
+
+				const mass = meshWeightMap.get(mesh);
+				if (mass !== undefined && mass === 0)
+					continue;
 
 				if (mesh.isInstancedMesh) {
 

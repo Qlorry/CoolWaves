@@ -11,10 +11,12 @@ import { disposeTreeGeometry } from '@/logic/shader-renderer'
 import { MyAmmoPhysics, RigidBox, RigidSphere } from '@/logic/MyAmmoPhysics'
 import type { AmmoPhysicsObject } from '@/logic/MyAmmoPhysics'
 
-let position = new THREE.Vector3();
-let boxes, spheres, flowers;
+// let boxes, spheres, flowers;
+let pointer: THREE.Vector2, raycaster: THREE.Raycaster;
+let isShiftDown = false;
 
-
+let floor: THREE.Mesh;
+let sphere: THREE.Mesh;
 let camera = new THREE.PerspectiveCamera()
 let scene = new THREE.Scene()
 let renderer = new THREE.WebGLRenderer()
@@ -22,18 +24,17 @@ let renderer = new THREE.WebGLRenderer()
 let stats = new Stats();
 let physics!: AmmoPhysicsObject;
 let monkeys: THREE.InstancedMesh;
-const dummy = new THREE.Object3D();
-
+// const dummy = new THREE.Object3D();
+let sound: THREE.Audio;
 
 export default defineComponent({
   data() {
     return {
-      pointer: new THREE.Vector2(-100, -100),
-
       inTransition: false,
       transitionIteration: 0,
       transitionLength: 100,
-      stopAnimate: false
+      stopAnimate: false,
+      elementsCount: 300
     }
   },
   setup() {
@@ -46,6 +47,12 @@ export default defineComponent({
     backgroundColor: String
   },
   methods: {
+    playMusic() {
+      sound.play();
+    },
+    pauseMusic() {
+      sound.pause();
+    },
     onWindowResize() {
       const canvas = (this.$refs.canvasRef as HTMLCanvasElement);
       let parent = canvas.parentElement;
@@ -58,15 +65,14 @@ export default defineComponent({
       if (canvas.width === parent.clientWidth || canvas.height === parent.clientHeight) {
         return;
       }
-      
-      
+
+
       camera.aspect = parent.clientWidth / parent.clientHeight;
       renderer.setSize(parent.clientWidth, parent.clientHeight)
 
       camera.updateProjectionMatrix()
     },
-
-    animate(t: number) {
+    animate() {
       if (this.stopAnimate) {
         return
       }
@@ -74,12 +80,11 @@ export default defineComponent({
 
       requestAnimationFrame(this.animate)
 
-      this.render(t)
+      this.render()
       stats?.update();
 
     },
-
-    render(t: number) {
+    render() {
       // if (mesh) {
 
       //   const time = Date.now() * 0.001;
@@ -116,40 +121,75 @@ export default defineComponent({
       // }
       renderer.render(scene, camera);
     },
+    onPointerMove(event: any) {
+      event.preventDefault();
+      event.stopImmediatePropagation();
 
-    // updateMousePos(event: TouchEvent | MouseEvent) {
-    //   const canvasEl = this.$refs.canvasRef as HTMLElement
-    //   var rect = canvasEl.getBoundingClientRect()
+      pointer.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1);
 
-    //   let x, y
-    //   if (event instanceof TouchEvent) {
-    //     event.preventDefault()
+      raycaster.setFromCamera(pointer, camera);
 
-    //     var touch = event.touches[0] || event.changedTouches[0]
-    //     x = touch.pageX
-    //     y = touch.pageY
-    //   } else {
-    //     x = event.clientX
-    //     y = event.clientY
+      const intersects = raycaster.intersectObjects([floor], false);
+      if (intersects.length > 0) {
+
+        const intersect = intersects[0];
+
+        physics.setMeshPosition(sphere, new THREE.Vector3(intersect.point.x, sphere.position.y, intersect.point.z))
+        sphere.position.x = intersect.point.x;
+        sphere.position.z = intersect.point.z;
+
+        this.render();
+      }
+    },
+    // onPointerDown(event: any) {
+
+    //   pointer.set((event.clientX / window.innerWidth) * 2 - 1, - (event.clientY / window.innerHeight) * 2 + 1);
+
+    //   raycaster.setFromCamera(pointer, camera);
+
+    //   const intersects = raycaster.intersectObjects(objects, false);
+
+    //   if (intersects.length > 0) {
+
+    //     const intersect = intersects[0];
+
+    //     // delete cube
+
+    //     if (isShiftDown) {
+
+    //       if (intersect.object !== plane) {
+
+    //         scene.remove(intersect.object);
+
+    //         objects.splice(objects.indexOf(intersect.object), 1);
+
+    //       }
+
+    //       // create cube
+
+    //     } else {
+
+    //       const voxel = new THREE.Mesh(cubeGeo, cubeMaterial);
+    //       voxel.position.copy(intersect.point).add(intersect.face.normal);
+    //       voxel.position.divideScalar(50).floor().multiplyScalar(50).addScalar(25);
+    //       scene.add(voxel);
+
+    //       objects.push(voxel);
+
+    //     }
+
+    //     render();
+
     //   }
 
-    //   this.pointer.x = x - rect.left
-    //   this.pointer.y = y - rect.top
-
-    //   this.pointer.x = this.pointer.x < 0 ? 0 : this.pointer.x
-    //   this.pointer.y = this.pointer.y < 0 ? 0 : this.pointer.y
-
-    //   this.pointer.x = (this.pointer.x / rect.width) * camera.right
-    //   this.pointer.y = ((rect.height - this.pointer.y) / rect.height) * camera.top
-    // },
-    // removeSelection(event: TouchEvent | MouseEvent) {
-    //   this.pointer.x = -100
-    //   this.pointer.y = -100
     // }
   },
   async mounted() {
     physics = await MyAmmoPhysics();
     scene = new THREE.Scene();
+
+    raycaster = new THREE.Raycaster();
+    pointer = new THREE.Vector2();
 
     const canvasEl = this.$refs.canvasRef as HTMLElement
     const parent = canvasEl.parentElement;
@@ -165,8 +205,22 @@ export default defineComponent({
 
     // camera
     camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 1000);
-    camera.position.set(2, 1.5, 2);
+    camera.position.set(4, 5, 0);
     camera.lookAt(0, 0, 0);
+
+    const listener = new THREE.AudioListener();
+    camera.add(listener);
+
+
+    sound = new THREE.Audio(listener);
+
+    const audioLoader = new THREE.AudioLoader();
+    audioLoader.load('sounds/Shigatsu wa Kimi no Uso UKR.mp3', function (buffer) {
+      sound.setBuffer(buffer);
+      sound.setLoop(true);
+      sound.setVolume(0.5);
+      // sound.play();
+    });
 
     // light
     const hemiLight = new THREE.HemisphereLight();
@@ -189,7 +243,7 @@ export default defineComponent({
     scene.add(floorShadow);
     physics.addMesh(floorShadow);
 
-    const floor = new THREE.Mesh(
+    floor = new THREE.Mesh(
       new THREE.BoxGeometry(10, 5, 10),
       new THREE.MeshBasicMaterial({ color: 0x666666 })
     );
@@ -202,7 +256,7 @@ export default defineComponent({
     wallTexture.transparent = true;
 
     let wall1 = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 15, 4),
+      new THREE.BoxGeometry(1, 105, 4),
       wallTexture
     );
     wall1.position.y = 0;
@@ -213,7 +267,7 @@ export default defineComponent({
     physics.addMesh(wall1);
 
     let wall2 = new THREE.Mesh(
-      new THREE.BoxGeometry(4, 15, 1),
+      new THREE.BoxGeometry(4, 105, 1),
       wallTexture
     );
     wall2.position.y = 0;
@@ -224,7 +278,7 @@ export default defineComponent({
     physics.addMesh(wall2);
 
     let wall3 = new THREE.Mesh(
-      new THREE.BoxGeometry(4, 15, 1),
+      new THREE.BoxGeometry(4, 105, 1),
       wallTexture
     );
     wall3.position.y = 0;
@@ -235,7 +289,7 @@ export default defineComponent({
     physics.addMesh(wall3);
 
     let wall4 = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 15, 4),
+      new THREE.BoxGeometry(1, 105, 4),
       wallTexture
     );
     wall4.position.y = 0;
@@ -245,46 +299,26 @@ export default defineComponent({
     scene.add(wall4);
     physics.addMesh(wall4);
 
+    // sphere to move
+    // const test = new THREE.MeshBasicMaterial({ color: 0xff0000 })
+
+    sphere = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 10, 10),
+      wallTexture
+    );
+    sphere.position.y = -0.5;
+    sphere.position.z = 0;
+    sphere.position.x = 0;
+
+    scene.add(sphere);
+    physics.addMesh(sphere);
+
+
     // instances
     const material = new THREE.MeshLambertMaterial();
 
     const matrix = new THREE.Matrix4();
     const color = new THREE.Color();
-
-    // Boxes
-    // debugger
-    // const geometryBox = new THREE.BoxGeometry(0.075, 0.075, 0.075);
-    // boxes = new THREE.InstancedMesh(geometryBox, material, 400);
-    // boxes.instanceMatrix.setUsage(THREE.DynamicDrawUsage); // will be updated every frame
-
-    // for (let i = 0; i < boxes.count; i++) {
-
-    //   matrix.setPosition(Math.random() - 0.5, Math.random() * 2, Math.random() - 0.5);
-    //   boxes.setMatrixAt(i, matrix);
-    //   boxes.setColorAt(i, color.setHex(0xffffff * Math.random()));
-
-    // }
-    // const boxesBody = new RigidBox(1, boxes.position, boxes.quaternion, new THREE.Vector3(0.075, 0.075, 0.075));
-    // physics.addMeshAndBody(boxes, boxesBody, 1);
-
-
-    // const x = 0, y = 0;
-    // const heartShape = new THREE.Shape();
-
-    // heartShape.moveTo(x + 5, y + 5);
-    // heartShape.bezierCurveTo(x + 5, y + 5, x + 4, y, x, y);
-    // heartShape.bezierCurveTo(x - 6, y, x - 6, y + 7, x - 6, y + 7);
-    // heartShape.bezierCurveTo(x - 6, y + 11, x - 3, y + 15.4, x + 5, y + 19);
-    // heartShape.bezierCurveTo(x + 12, y + 15.4, x + 16, y + 11, x + 16, y + 7);
-    // heartShape.bezierCurveTo(x + 16, y + 7, x + 16, y, x + 10, y);
-    // heartShape.bezierCurveTo(x + 7, y, x + 5, y + 5, x + 5, y + 5);
-
-
-    // const geometry = new THREE.ShapeGeometry(heartShape);
-    // geometry.scale(0.007, 0.007, 0.007);
-
-
-
 
 
     const loader = new THREE.BufferGeometryLoader();
@@ -314,62 +348,24 @@ export default defineComponent({
     });
 
 
-
-
-
-    // // Spheres
-
-    // const geometrySphere = new THREE.IcosahedronGeometry(0.05, 4);
-    // spheres = new THREE.InstancedMesh(geometrySphere, material, 400);
-    // spheres.instanceMatrix.setUsage(THREE.DynamicDrawUsage); // will be updated every frame
-    // spheres.castShadow = true;
-    // spheres.receiveShadow = true;
-    // scene.add(spheres);
-
-    // for (let i = 0; i < spheres.count; i++) {
-
-    //   matrix.setPosition(Math.random() - 0.5, Math.random() * 2, Math.random() - 0.5);
-    //   spheres.setMatrixAt(i, matrix);
-    //   spheres.setColorAt(i, color.setHex(0xffffff * Math.random()));
-
-    // }
-
-    // physics.addMesh(spheres, 1);
-
-
-
-
-
     window.addEventListener('resize', this.onWindowResize)
     parent?.addEventListener('resize', this.onWindowResize)
 
-    // canvasEl.addEventListener('mousemove', this.updateMousePos)
-    // canvasEl.addEventListener('touchmove', this.updateMousePos)
-    // canvasEl.addEventListener('touchstart', this.updateMousePos)
-    // canvasEl.addEventListener('touchcancel', this.updateMousePos)
+    document.addEventListener('pointermove', this.onPointerMove);
+    // document.addEventListener('pointerdown', this.onPointerDown);
+    // document.addEventListener('keydown', this.onDocumentKeyDown);
+    // document.addEventListener('keyup', this.onDocumentKeyUp);
 
-    // canvasEl.addEventListener('touchend', this.removeSelection)
+    canvasEl.addEventListener('mousemove', this.onPointerMove, { passive: false })
+    canvasEl.addEventListener('touchmove', this.onPointerMove, { passive: false })
+    canvasEl.addEventListener('touchstart', this.onPointerMove, { passive: false })
+    canvasEl.addEventListener('touchcancel', this.onPointerMove, { passive: false })
+    canvasEl.addEventListener('touchend', this.onPointerMove, { passive: false })
     // canvasEl.addEventListener('click', this.removeSelection)
     // document.body.appendChild(stats.dom);
 
     this.onWindowResize()
-    this.animate(0)
-
-    // setInterval(() => {
-
-    //   let index = Math.floor(Math.random() * boxes.count);
-
-    //   position.set(0, Math.random() + 1, 0);
-    //   physics.setMeshPosition(boxes, position, index);
-
-    //   //
-
-    //   index = Math.floor(Math.random() * spheres.count);
-
-    //   position.set(0, Math.random() + 1, 0);
-    //   physics.setMeshPosition(spheres, position, index);
-
-    // }, 1000 / 60);
+    this.animate()
   },
   unmounted() {
     this.stopAnimate = true
@@ -379,6 +375,17 @@ export default defineComponent({
 </script>
 
 <template>
+  <div class="constainer d-flex justify-content-between py-1 px-4 m-0 w-100">
+    <!-- <div class="constainer d-flex justify-content-between py-1 px-4 m-0 w-100">
+
+    </div> -->
+    <button type="button" @click="playMusic" class="btn btn-primary mx-2">Play Music</button>
+    <button type="button" @click="pauseMusic" class="btn btn-danger mx-2">Stop Music</button>
+    <div class="mx-2" >
+      <label for="customRange2" class="form-label">Number Of Elements</label>
+      <input v-model="elementsCount" type="range" class="form-range" min="10" max="1500" id="customRange2">
+    </div>
+  </div>
   <div class="flex-grow-1 p-0 m-0 mw-100 mh-100 overflow-hidden">
     <canvas ref="canvasRef"></canvas>
   </div>
