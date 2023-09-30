@@ -178,6 +178,8 @@ export default defineComponent({
     renderer.useLegacyLights = false
 
     scene.add(linesGroup)
+
+
     scene.background = new THREE.Color("#ff0000")
 
     window.addEventListener('resize', this.onWindowResize)

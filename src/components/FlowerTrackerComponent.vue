@@ -4,14 +4,14 @@ import { ref } from 'vue'
 import { defineComponent } from 'vue'
 
 import * as THREE from 'three'
-
+import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
 import Stats from 'three/addons/libs/stats.module.js';
 import { disposeTreeGeometry } from '@/logic/shader-renderer'
 // import { PhysicsWorld, RigidBox, createAmmoLib } from '@/logic/physics-world'
 import { MyAmmoPhysics, RigidBox, RigidSphere } from '@/logic/MyAmmoPhysics'
 import type { AmmoPhysicsObject } from '@/logic/MyAmmoPhysics'
 
-// let boxes, spheres, flowers;
+let flowers, leafs;
 let pointer: THREE.Vector2, raycaster: THREE.Raycaster;
 let isShiftDown = false;
 
@@ -205,7 +205,7 @@ export default defineComponent({
 
     // camera
     camera = new THREE.PerspectiveCamera(70, width / height, 0.1, 1000);
-    camera.position.set(4, 5, 0);
+    camera.position.set(3, 3, 0);
     camera.lookAt(0, 0, 0);
 
     const listener = new THREE.AudioListener();
@@ -321,30 +321,106 @@ export default defineComponent({
     const color = new THREE.Color();
 
 
-    const loader = new THREE.BufferGeometryLoader();
-    loader.load('/models/suzanne_buffergeometry.json', (monkGeometry) => {
-      monkGeometry.computeVertexNormals();
-      monkGeometry.scale(0.07, 0.07, 0.07);
+    // const loader = new THREE.BufferGeometryLoader();
+    // loader.load('/models/suzanne_buffergeometry.json', (monkGeometry) => {
+    //   monkGeometry.computeVertexNormals();
+    //   monkGeometry.scale(0.07, 0.07, 0.07);
 
-      const monkGaterial = new THREE.MeshNormalMaterial();
-      // check overdraw
-      // let material = new THREE.MeshBasicMaterial({ color: 0xff0000, opacity: 0.1, transparent: true });
+    //   const monkGaterial = new THREE.MeshNormalMaterial();
+    //   // check overdraw
+    //   // let material = new THREE.MeshBasicMaterial({ color: 0xff0000, opacity: 0.1, transparent: true });
 
-      monkeys = new THREE.InstancedMesh(monkGeometry, monkGaterial, 500);
-      monkeys.instanceMatrix.setUsage(THREE.DynamicDrawUsage); // will be updated every frame
-      scene.add(monkeys);
+    //   monkeys = new THREE.InstancedMesh(monkGeometry, monkGaterial, 500);
+    //   monkeys.instanceMatrix.setUsage(THREE.DynamicDrawUsage); // will be updated every frame
+    //   scene.add(monkeys);
 
-      monkeys.castShadow = true;
-      monkeys.receiveShadow = true;
+    //   monkeys.castShadow = true;
+    //   monkeys.receiveShadow = true;
 
-      for (let i = 0; i < monkeys.count; i++) {
+    //   for (let i = 0; i < monkeys.count; i++) {
+    //     matrix.setPosition(Math.random() - 0.5, Math.random() * 2, Math.random() - 0.5);
+    //     monkeys.setMatrixAt(i, matrix);
+    //     monkeys.setColorAt(i, color.setHex(0xffffff * Math.random()));
+
+    //   }
+    //   const boxesBody = new RigidSphere(1, monkeys.position, 0.075);
+    //   physics.addMeshAndBody(monkeys, boxesBody, 1);
+    // });
+
+    const loader = new OBJLoader();
+
+    loader.load('/models/flower2/PUSHILIN_hibiscus_flower.obj', function (obj) {
+      debugger
+      //monkGeometry.computeVertexNormals();
+      //   monkGeometry.scale(0.07, 0.07, 0.07);
+
+      //   const monkGaterial = new THREE.MeshNormalMaterial();
+      //   // check overdraw
+      //   // let material = new THREE.MeshBasicMaterial({ color: 0xff0000, opacity: 0.1, transparent: true });
+
+      const flMesh = (obj.children[0] as THREE.Mesh);
+      const flMaterial = new THREE.MeshLambertMaterial();
+      const flGeom = flMesh.geometry.clone();
+
+      disposeTreeGeometry(obj);
+
+      flGeom.scale(0.09, 0.09, 0.09);
+
+      flowers = new THREE.InstancedMesh(flGeom, flMaterial, 500);
+      flowers.instanceMatrix.setUsage(THREE.DynamicDrawUsage); // will be updated every frame
+      flowers.castShadow = true;
+      flowers.receiveShadow = true;
+      scene.add(flowers);
+
+      for (let i = 0; i < flowers.count; i++) {
         matrix.setPosition(Math.random() - 0.5, Math.random() * 2, Math.random() - 0.5);
-        monkeys.setMatrixAt(i, matrix);
-        monkeys.setColorAt(i, color.setHex(0xffffff * Math.random()));
+        flowers.setMatrixAt(i, matrix);
+        flowers.setColorAt(i, color.setHex(0xffffff * Math.random()));
 
       }
-      const boxesBody = new RigidSphere(1, monkeys.position, 0.075);
-      physics.addMeshAndBody(monkeys, boxesBody, 1);
+      const boxesBody = new RigidSphere(1, flowers.position, 0.075);
+      physics.addMeshAndBody(flowers, boxesBody, 1);
+    }, undefined, function (error) {
+
+      console.error(error);
+
+    });
+
+    loader.load('/models/leaf/PUSHILIN_leaf.obj', function (obj) {
+      debugger
+      //monkGeometry.computeVertexNormals();
+      //   monkGeometry.scale(0.07, 0.07, 0.07);
+
+      //   const monkGaterial = new THREE.MeshNormalMaterial();
+      //   // check overdraw
+        let material = new THREE.MeshBasicMaterial({ color: 0x00ff00, opacity: 0.1, transparent: true });
+
+      const leafMesh = (obj.children[0] as THREE.Mesh);
+      const leafGeom = leafMesh.geometry.clone();
+      // const leafText = Array.isArray(leafMesh.material)? leafMesh.material[0].clone(): leafMesh.material.clone();
+
+      disposeTreeGeometry(obj);
+
+      leafGeom.scale(0.2, 0.2, 0.2);
+
+      leafs = new THREE.InstancedMesh(leafGeom, material, 400);
+      leafs.instanceMatrix.setUsage(THREE.DynamicDrawUsage); // will be updated every frame
+      leafs.castShadow = true;
+      leafs.receiveShadow = true;
+      scene.add(leafs);
+
+      for (let i = 0; i < leafs.count; i++) {
+        matrix.setPosition(Math.random() - 0.5, Math.random() * 2, Math.random() - 0.5);
+        leafs.setMatrixAt(i, matrix);
+      }
+      const boxesBody = new RigidSphere(1, leafs.position, 0.1);
+
+      // const boxesBody = new RigidBox(1,leafs.position, leafs.quaternion, new THREE.Vector3(0.9, 0.9, 0.9));
+      physics.addMeshAndBody(leafs, boxesBody, 1);
+    }, undefined, function (error) {
+
+      console.error(error);
+
     });
 
 
@@ -381,7 +457,7 @@ export default defineComponent({
     </div> -->
     <button type="button" @click="playMusic" class="btn btn-primary mx-2">Play Music</button>
     <button type="button" @click="pauseMusic" class="btn btn-danger mx-2">Stop Music</button>
-    <div class="mx-2" >
+    <div class="mx-2">
       <label for="customRange2" class="form-label">Number Of Elements</label>
       <input v-model="elementsCount" type="range" class="form-range" min="10" max="1500" id="customRange2">
     </div>
